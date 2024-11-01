@@ -49,6 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $message = "Only JPG, JPEG, PNG, and GIF files are allowed.";
         }
     }
+
+    if (!empty($_POST['self_introduction'])) {
+        $selfIntroduction = $_POST['self_introduction'];
+        $updateIntro = $conn->prepare("UPDATE users SET self_introduction = :self_introduction WHERE id = :id");
+        $updateIntro->execute([':self_introduction' => $selfIntroduction, ':id' => $userId]);
+        $message .= " Self-introduction updated successfully!";
+    }
 }
 ?>
 
@@ -56,28 +63,104 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html>
 <head>
     <title>Update Profile</title>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"], input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        #editor-container {
+            height: 150px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .message {
+            font-weight: bold;
+            color: red;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var quill = new Quill('#editor-container', {
+                theme: 'snow',
+                placeholder: 'Edit your self-introduction here...',
+                modules: {
+                    toolbar: [['bold', 'italic', 'underline'], ['link']]
+                }
+            });
+
+            // Load the existing self-introduction
+            quill.root.innerHTML = <?php echo json_encode($user['self_introduction']); ?>;
+
+            document.querySelector('form').addEventListener('submit', function () {
+                var selfIntroduction = document.querySelector('input[name=self_introduction]');
+                selfIntroduction.value = quill.root.innerHTML;
+            });
+        });
+    </script>
 </head>
 <body>
-    <h1>Update Profile</h1>
-    <p><?php echo $message; ?></p>
+    <div class="form-container">
+        <h1>Update Profile</h1>
+        <p class="message"><?php echo $message; ?></p>
 
-    <?php if ($user['image']): ?>
-        <img src="uploads/<?php echo htmlspecialchars($user['image']); ?>" alt="Profile Image" style="width: 150px; height: auto;">
-    <?php else: ?>
-        <p>No profile image uploaded.</p>
-    <?php endif; ?>
+        <?php if ($user['image']): ?>
+            <img src="uploads/<?php echo htmlspecialchars($user['image']); ?>" alt="Profile Image" style="width: 150px; height: auto; margin-bottom: 15px;">
+        <?php else: ?>
+            <p>No profile image uploaded.</p>
+        <?php endif; ?>
 
-    <form method="POST" enctype="multipart/form-data">
-        <label for="new_password">New Password:</label>
-        <input type="password" name="new_password" placeholder="Enter new password">
-        
-        <label for="new_image">New Profile Image:</label>
-        <input type="file" name="new_image" accept="image/jpeg, image/png, image/gif">
-        <p></p>
-        <button type="submit">Update Profile</button>
-    </form>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="new_password">New Password:</label>
+                <input type="password" name="new_password" placeholder="Enter new password">
+            </div>
 
-    <br>
-    <a href="home.php">Return</a>
+            <div class="form-group">
+                <label for="new_image">New Profile Image:</label>
+                <input type="file" name="new_image" accept="image/jpeg, image/png, image/gif">
+            </div>
+
+            <div class="form-group">
+                <label for="self_introduction">Self Introduction:</label>
+                <div id="editor-container"></div>
+                <input type="hidden" name="self_introduction">
+            </div>
+
+            <button type="submit">Update Profile</button>
+        </form>
+        <br>
+        <a href="home.php">Return to Home</a>
+    </div>
 </body>
 </html>
